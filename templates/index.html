@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能對話系統</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>智能對話系統</h1>
+        </header>
+        
+        <div class="chat-container">
+            <div class="chat-window" id="chatWindow">
+                <!-- 對話內容將在這裡動態生成 -->
+            </div>
+            
+            <div class="memory-stream" id="memoryStream">
+                <h2>記憶流</h2>
+                <div class="memory-list" id="memoryList">
+                    <!-- 記憶流內容將在這裡動態生成 -->
+                </div>
+            </div>
+        </div>
+        
+        <div class="input-area">
+            <input type="text" id="userInput" placeholder="請輸入您的訊息...">
+            <button id="sendButton">發送</button>
+        </div>
+    </div>
+
+    <!-- 記憶參考浮動視窗 -->
+    <div class="memory-popup" id="memoryPopup">
+        <div class="memory-popup-header">
+            <h3>記憶參考</h3>
+            <span class="close-popup" id="closePopup">&times;</span>
+        </div>
+        <div class="memory-popup-content" id="memoryPopupContent">
+            <!-- 記憶參考內容將在這裡動態生成 -->
+        </div>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/script.js') }}"></script>
+</body>
+</html>

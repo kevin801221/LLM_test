@@ -1,0 +1,44 @@
+# Core dependencies
+numpy==1.24.3
+opencv-python>=4.9.0
+insightface==0.7.3
+python-dotenv==1.0.1
+openai>=1.0.0
+PySide6==6.8.2.1
+requests==2.32.3
+SpeechRecognition==3.14.1
+PyAudio==0.2.14
+tiktoken==0.9.0
+pygame==2.6.1
+
+ollama>=0.1.0
+edge-tts>=6.1.9
+
+# MongoDB
+pymongo==4.11.2
+
+# Web framework
+flask==3.1.0
+flask-cors>=4.0.0
+
+# LangChain
+langchain==0.3.20
+langchain-community==0.3.19
+langchain-core==0.3.41
+langchain-openai==0.3.7
+langgraph==0.3.5
+
+# Vector search
+faiss-cpu==1.10.0
+sentence-transformers==3.4.1
+
+# Utilities
+tqdm==4.67.1
+pydantic==2.10.6
+python-multipart==0.0.20
+
+# 注意：以下是 Python 內建庫，不需要通過 pip 安裝
+# tkinter
+# uuid
+# json
+# time

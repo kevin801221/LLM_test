@@ -1,0 +1,114 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+.env
+face_recog_env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Project specific
+face_features.json
+*.db
+employee_data.json
+training_images/
+*.log
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.mp4
+*.avi
+*.mov
+
+# Credentials and Sensitive Data
+*_key.json
+*_secret.json
+credentials.json
+secrets.json
+config.json
+api_keys.json
+
+# API Cost Tracking
+logs/api_cost.json
+logs/
+
+# Audio files
+audio/
+*.mp3
+*.wav
+
+# Temporary files
+temp/
+tmp/
+*.tmp
+
+# Local development
+.DS_Store
+Thumbs.db
+
+
+employee_data/*
+memory_store/ #使用本地app跑出的相關記憶文件
+
+# Large directories
+memory_venv/
+YCM_env/
+new_data/
+audio/
+temp_audio/
+
+# Large files
+*.dll
+*.lib
+*.pyd
+*.so
+*.dylib
+
+# Database files
+conversation_memory.db
+test_conversation_memory.db
+
+# API key related files
+print_api_key.py
+update_api_key.py
+update_api_key_direct.py
+*_api_key*.py
+
+# Additional sensitive information
+*_key.py
+*_secret.py
+*_token.py
+
+# Large media files
+*.flac
+meeting_exports/
+
+# Logs and temporary files
+logs/
+*.log

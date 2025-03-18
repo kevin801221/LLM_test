@@ -1,0 +1,360 @@
+// 全局變量
+const USER_ID = 'default_user'; // 默認用戶ID
+let currentMemoryReferences = []; // 當前回應的記憶參考
+
+// DOM 元素
+const chatWindow = document.getElementById('chatWindow');
+const memoryList = document.getElementById('memoryList');
+const userInput = document.getElementById('userInput');
+const sendButton = document.getElementById('sendButton');
+const memoryPopup = document.getElementById('memoryPopup');
+const memoryPopupContent = document.getElementById('memoryPopupContent');
+const closePopup = document.getElementById('closePopup');
+
+// 頁面加載完成後初始化
+document.addEventListener('DOMContentLoaded', () => {
+    // 載入聊天歷史
+    loadChatHistory();
+    
+    // 載入記憶流
+    loadMemoryStream();
+    
+    // 設置事件監聽器
+    setupEventListeners();
+});
+
+// 設置事件監聽器
+function setupEventListeners() {
+    // 發送按鈕點擊事件
+    sendButton.addEventListener('click', sendMessage);
+    
+    // 輸入框按下 Enter 鍵事件
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
+        }
+    });
+    
+    // 關閉記憶參考浮動視窗
+    closePopup.addEventListener('click', () => {
+        memoryPopup.style.display = 'none';
+    });
+    
+    // 點擊其他地方關閉浮動視窗
+    document.addEventListener('click', (e) => {
+        if (!memoryPopup.contains(e.target) && 
+            !e.target.classList.contains('agent-message-content')) {
+            memoryPopup.style.display = 'none';
+        }
+    });
+}
+
+// 載入聊天歷史
+async function loadChatHistory() {
+    try {
+        const response = await fetch(`/get_chat_history?user_id=${USER_ID}`);
+        const data = await response.json();
+        
+        if (data.conversations && data.conversations.length > 0) {
+            // 清空聊天窗口
+            chatWindow.innerHTML = '';
+            
+            // 添加對話到聊天窗口
+            data.conversations.forEach(conv => {
+                addMessageToChat('user', conv.user_input);
+                addMessageToChat('agent', conv.agent_output, conv.memory_references, conv.model_used, conv.timing);
+            });
+            
+            // 滾動到底部
+            scrollToBottom();
+        }
+    } catch (error) {
+        console.error('載入聊天歷史時發生錯誤:', error);
+    }
+}
+
+// 載入記憶流
+async function loadMemoryStream() {
+    try {
+        const response = await fetch('/get_memory_stream');
+        const data = await response.json();
+        
+        if (data.memory_stream && data.memory_stream.length > 0) {
+            // 清空記憶列表
+            memoryList.innerHTML = '';
+            
+            // 添加記憶到記憶列表
+            data.memory_stream.forEach(memory => {
+                if (memory.user_id === USER_ID) {
+                    addMemoryToList(memory);
+                }
+            });
+        }
+    } catch (error) {
+        console.error('載入記憶流時發生錯誤:', error);
+    }
+}
+
+// 發送訊息
+async function sendMessage() {
+    const message = userInput.value.trim();
+    
+    if (message) {
+        // 添加用戶訊息到聊天窗口
+        addMessageToChat('user', message);
+        
+        // 清空輸入框
+        userInput.value = '';
+        
+        // 顯示載入中提示
+        const loadingId = addLoadingMessage();
+        
+        try {
+            // 發送請求到伺服器
+            const response = await fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    message: message,
+                    user_id: USER_ID
+                }),
+            });
+            
+            const data = await response.json();
+            
+            // 移除載入中提示
+            removeLoadingMessage(loadingId);
+            
+            // 添加代理回應到聊天窗口
+            addMessageToChat('agent', data.response, data.memory_references, data.model_used, data.timing);
+            
+            // 保存當前回應的記憶參考
+            currentMemoryReferences = data.memory_references;
+            
+            // 重新載入記憶流
+            loadMemoryStream();
+            
+            // 滾動到底部
+            scrollToBottom();
+        } catch (error) {
+            console.error('發送訊息時發生錯誤:', error);
+            
+            // 移除載入中提示
+            removeLoadingMessage(loadingId);
+            
+            // 添加錯誤訊息
+            addMessageToChat('agent', '抱歉，處理您的請求時發生錯誤，請稍後再試。');
+            
+            // 滾動到底部
+            scrollToBottom();
+        }
+    }
+}
+
+// 添加訊息到聊天窗口
+function addMessageToChat(role, content, memoryRefs = [], modelUsed = '', timing = null) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', `${role}-message`);
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content', `${role}-message-content`);
+    contentDiv.textContent = content;
+    
+    // 如果是代理訊息，添加記憶參考點擊事件
+    if (role === 'agent') {
+        contentDiv.dataset.memoryRefs = JSON.stringify(memoryRefs);
+        contentDiv.dataset.modelUsed = modelUsed;
+        contentDiv.dataset.timing = JSON.stringify(timing);
+        contentDiv.addEventListener('mouseover', showMemoryReferences);
+    }
+    
+    messageDiv.appendChild(contentDiv);
+    chatWindow.appendChild(messageDiv);
+}
+
+// 添加記憶到記憶列表
+function addMemoryToList(memory) {
+    const memoryDiv = document.createElement('div');
+    memoryDiv.classList.add('memory-item');
+    
+    const textDiv = document.createElement('div');
+    textDiv.classList.add('memory-text');
+    textDiv.textContent = memory.text;
+    
+    const metaDiv = document.createElement('div');
+    metaDiv.classList.add('memory-meta');
+    
+    const timeSpan = document.createElement('span');
+    timeSpan.textContent = `創建: ${memory.created_time}`;
+    
+    const retrievedSpan = document.createElement('span');
+    retrievedSpan.textContent = `上次檢索: ${memory.last_retrieved}`;
+    
+    metaDiv.appendChild(timeSpan);
+    metaDiv.appendChild(retrievedSpan);
+    
+    memoryDiv.appendChild(textDiv);
+    memoryDiv.appendChild(metaDiv);
+    
+    memoryList.appendChild(memoryDiv);
+}
+
+// 添加載入中提示
+function addLoadingMessage() {
+    const id = 'loading-' + Date.now();
+    const loadingDiv = document.createElement('div');
+    loadingDiv.classList.add('message', 'agent-message');
+    loadingDiv.id = id;
+    
+    const contentDiv = document.createElement('div');
+    contentDiv.classList.add('message-content', 'agent-message-content');
+    contentDiv.textContent = '正在思考...';
+    
+    loadingDiv.appendChild(contentDiv);
+    chatWindow.appendChild(loadingDiv);
+    
+    // 滾動到底部
+    scrollToBottom();
+    
+    return id;
+}
+
+// 移除載入中提示
+function removeLoadingMessage(id) {
+    const loadingDiv = document.getElementById(id);
+    if (loadingDiv) {
+        chatWindow.removeChild(loadingDiv);
+    }
+}
+
+// 顯示記憶參考浮動視窗
+function showMemoryReferences(event) {
+    const memoryRefsStr = event.currentTarget.dataset.memoryRefs;
+    const modelUsed = event.currentTarget.dataset.modelUsed;
+    const timingStr = event.currentTarget.dataset.timing;
+    
+    // 清空浮動視窗內容
+    memoryPopupContent.innerHTML = '';
+    
+    // 添加模型信息
+    if (modelUsed) {
+        const modelDiv = document.createElement('div');
+        modelDiv.classList.add('model-info');
+        modelDiv.textContent = `使用模型: ${modelUsed}`;
+        memoryPopupContent.appendChild(modelDiv);
+    }
+    
+    // 添加處理時間信息
+    if (timingStr) {
+        try {
+            const timing = JSON.parse(timingStr);
+            const timingDiv = document.createElement('div');
+            timingDiv.classList.add('timing-info');
+            
+            // 創建一個表格來顯示時間信息
+            const table = document.createElement('table');
+            table.classList.add('timing-table');
+            
+            // 添加表頭
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            const header1 = document.createElement('th');
+            header1.textContent = '處理階段';
+            const header2 = document.createElement('th');
+            header2.textContent = '時間 (秒)';
+            headerRow.appendChild(header1);
+            headerRow.appendChild(header2);
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+            
+            // 添加表體
+            const tbody = document.createElement('tbody');
+            
+            // 添加 API 回應時間
+            if (timing.api_response !== undefined) {
+                const row = document.createElement('tr');
+                const cell1 = document.createElement('td');
+                cell1.textContent = 'API 回應';
+                const cell2 = document.createElement('td');
+                cell2.textContent = timing.api_response.toFixed(3);
+                row.appendChild(cell1);
+                row.appendChild(cell2);
+                tbody.appendChild(row);
+            }
+            
+            // 添加總處理時間
+            if (timing.total_processing_time !== undefined) {
+                const row = document.createElement('tr');
+                const cell1 = document.createElement('td');
+                cell1.textContent = '總處理時間';
+                const cell2 = document.createElement('td');
+                cell2.textContent = timing.total_processing_time.toFixed(3);
+                row.appendChild(cell1);
+                row.appendChild(cell2);
+                tbody.appendChild(row);
+            }
+            
+            table.appendChild(tbody);
+            timingDiv.appendChild(table);
+            memoryPopupContent.appendChild(timingDiv);
+        } catch (error) {
+            console.error('解析處理時間信息時發生錯誤:', error);
+        }
+    }
+    
+    // 添加記憶參考
+    if (memoryRefsStr) {
+        try {
+            const memoryRefs = JSON.parse(memoryRefsStr);
+            
+            if (memoryRefs.length > 0) {
+                // 添加分隔線
+                const divider = document.createElement('div');
+                divider.classList.add('popup-divider');
+                memoryPopupContent.appendChild(divider);
+                
+                // 添加記憶參考標題
+                const titleDiv = document.createElement('div');
+                titleDiv.classList.add('memory-references-title');
+                titleDiv.textContent = '記憶參考:';
+                memoryPopupContent.appendChild(titleDiv);
+                
+                // 添加記憶參考到浮動視窗
+                memoryRefs.forEach(ref => {
+                    const refDiv = document.createElement('div');
+                    refDiv.classList.add('memory-reference');
+                    
+                    const contentDiv = document.createElement('div');
+                    contentDiv.classList.add('memory-reference-content');
+                    contentDiv.textContent = ref.content;
+                    
+                    const scoreDiv = document.createElement('div');
+                    scoreDiv.classList.add('memory-reference-score');
+                    scoreDiv.textContent = `相似度分數: ${ref.score.toFixed(4)}`;
+                    
+                    refDiv.appendChild(contentDiv);
+                    refDiv.appendChild(scoreDiv);
+                    
+                    memoryPopupContent.appendChild(refDiv);
+                });
+            }
+        } catch (error) {
+            console.error('解析記憶參考時發生錯誤:', error);
+        }
+    }
+    
+    // 計算浮動視窗位置
+    const rect = event.currentTarget.getBoundingClientRect();
+    memoryPopup.style.top = `${rect.bottom + 10}px`;
+    memoryPopup.style.left = `${rect.left}px`;
+    
+    // 顯示浮動視窗
+    memoryPopup.style.display = 'block';
+}
+
+// 滾動到底部
+function scrollToBottom() {
+    chatWindow.scrollTop = chatWindow.scrollHeight;
+}
